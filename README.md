@@ -50,5 +50,4 @@ $$\Delta\psi = D \nabla^2 [-A \tanh(\psi) + \psi] - B(\psi - f) + \eta$$
 
 1. **Clone the Repository:**
    ```bash
-   git clone [[[https://github.com/your-username/cell-dynamics-simulation-3d.git](https://afaquehassan.github.io/cell-dynamics-simulation-3d/)]
-](https://afaquehassan.github.io/cell-dynamics-simulation-3d/)
+   git clone [[[[https://github.com/your-username/cell-dynamics-simulation-3d.git](https://afaquehassan.github.io/cell-dynamics-simulation-3d/)]
