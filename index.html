@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDS Diblock Copolymer 19-Pt & 55-Pt Stencil Suite - Afaque Ahmed</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            background-color: #0b1120;
+            color: #f8fafc;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .tab-btn.active {
+            background-color: #0284c7 !important;
+            border-color: #38bdf8 !important;
+            color: #ffffff !important;
+            font-weight: 700;
+        }
+        .stencil-btn.active {
+            background-color: #10b981 !important;
+            border-color: #34d399 !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden select-none">
+
+    <!-- Top Header Navigation Bar -->
+    <header class="glass-panel px-5 py-2.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 z-30 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-sky-500/20 text-sky-400 rounded-lg border border-sky-500/30">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base text-slate-100 tracking-wide">Cell Dynamics Simulation (CDS) Diblock Copolymer Dashboard</h1>
+                <p class="text-[11px] text-slate-400">Cylindrical Mesh System (Interactive 19-Pt & 55-Pt Stencil Operator Switching Engine)</p>
+            </div>
+        </div>
+
+        <!-- Stencil Switcher Toggle -->
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 gap-1 font-mono">
+            <span class="text-[11px] text-slate-400 px-2 font-sans font-semibold">Stencil Discretization:</span>
+            <button id="stencil-19-btn" class="stencil-btn active px-3 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 text-slate-300 transition" onclick="switchStencil(19)">
+                19-Point
+            </button>
+            <button id="stencil-55-btn" class="stencil-btn px-3 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 text-slate-300 transition" onclick="switchStencil(55)">
+                55-Point
+            </button>
+        </div>
+
+        <!-- Figure Tabs Navigation -->
+        <div class="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full" id="figure-tabs">
+            <button class="tab-btn active px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 text-xs text-slate-300 hover:border-sky-400 transition" data-key="fig14">Fig 14 (Lamellae Neutral)</button>
+            <button class="tab-btn px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 text-xs text-slate-300 hover:border-sky-400 transition" data-key="fig16">Fig 16 (Cylindrical Neutral)</button>
+            <button class="tab-btn px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 text-xs text-slate-300 hover:border-sky-400 transition" data-key="fig18">Fig 18 (Spherical Neutral)</button>
+            <button class="tab-btn px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 text-xs text-slate-300 hover:border-sky-400 transition" data-key="fig22">Fig 22 (Perforated Wall)</button>
+            <button class="tab-btn px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 text-xs text-slate-300 hover:border-sky-400 transition" data-key="fig23">Fig 23 (Helical Attractive)</button>
+            <button class="tab-btn px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 text-xs text-slate-300 hover:border-sky-400 transition" data-key="fig24">Fig 24 (Spherical Attractive)</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Grid -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+        <!-- Left Sidebar Controls & CDS Parameters Panel -->
+        <div class="w-full md:w-80 h-auto md:h-full glass-panel flex flex-col border-r border-slate-800 z-20 overflow-y-auto p-3.5 space-y-4 shrink-0 text-xs">
+            <div class="font-bold text-slate-200 uppercase tracking-wider text-[11px] flex items-center justify-between pb-2 border-b border-slate-800">
+                <span class="flex items-center gap-1.5">
+                    <i data-lucide="sliders" class="w-4 h-4 text-sky-400"></i> Controls & Parameters
+                </span>
+                <span id="active-stencil-badge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">19-Pt Operator</span>
+            </div>
+
+            <!-- Parameters Inputs List -->
+            <div class="space-y-2 font-mono">
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Nonlinear Term A:</span>
+                    <input type="number" id="param-A" value="1.50" step="0.05" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Diffusion D:</span>
+                    <input type="number" id="param-D" value="0.70" step="0.05" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Long-range B:</span>
+                    <input type="number" id="param-B" value="0.02" step="0.005" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Order Parameter τ:</span>
+                    <input type="number" id="param-tau" value="0.36" step="0.01" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Block Fraction f:</span>
+                    <input type="number" id="param-f" value="0.48" step="0.01" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Volume Ratio u:</span>
+                    <input type="number" id="param-u" value="0.38" step="0.01" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Volume Ratio v:</span>
+                    <input type="number" id="param-v" value="2.30" step="0.05" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Pore Height h:</span>
+                    <input type="number" id="param-h" value="4.0" step="0.5" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Interior Radius r_a:</span>
+                    <input type="number" id="param-ra" value="3.0" step="0.5" class="w-20 bg-slate-950 border border-slate-700 text-sky-400 px-1.5 py-0.5 rounded text-right focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                    <span class="text-slate-400">Grid Resolution:</span>
+                    <span class="text-emerald-400 font-bold">16x64x48</span>
+                </div>
+            </div>
+
+            <!-- Execution Control Buttons -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-slate-400 font-mono">
+                    <span>Total Time Steps:</span>
+                    <span class="text-slate-200">1000000</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-400 font-mono">
+                    <span>Save Frequency:</span>
+                    <span class="text-slate-200">10000</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button id="btn-start" class="bg-sky-600 hover:bg-sky-500 text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition shadow">
+                        <i data-lucide="play" class="w-4 h-4"></i> Start
+                    </button>
+                    <button id="btn-pause" class="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="pause" class="w-4 h-4"></i> Pause
+                    </button>
+                </div>
+                <button id="btn-reset" class="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 border border-slate-800 transition">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-sky-400"></i> Reset Simulation
+                </button>
+                <button id="btn-export" class="w-full bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+                    <i data-lucide="download" class="w-4 h-4"></i> Export Final VTK
+                </button>
+            </div>
+
+            <!-- Simulation Status Monitor -->
+            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 font-mono space-y-1">
+                <div class="text-[10px] text-slate-500 uppercase tracking-wider">Status</div>
+                <div id="status-text" class="text-emerald-400 font-bold">19-Pt Engine Ready</div>
+                <div class="text-slate-400 text-[11px]" id="step-counter">Step: 1,000,000 / 1,000,000</div>
+            </div>
+        </div>
+
+        <!-- Center 3D Viewport & Intermediate Output Panels -->
+        <div class="flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden">
+            
+            <!-- Main 3D Volume Rendering Container -->
+            <div class="flex-1 relative w-full h-full">
+                <div id="canvas-container" class="w-full h-full"></div>
+
+                <!-- Floating Title Badge -->
+                <div class="absolute top-3 left-3 z-10 glass-panel px-3.5 py-2 rounded-xl flex items-center gap-2.5 shadow-xl">
+                    <div class="w-3 h-3 rounded-full bg-sky-400 animate-pulse"></div>
+                    <div>
+                        <h2 class="text-[10px] font-bold uppercase tracking-wider text-slate-400" id="fig-subtitle">Section 4.2 - Fig 14</h2>
+                        <p id="view-title" class="text-xs font-bold text-sky-400">(a) Front View</p>
+                    </div>
+                </div>
+
+                <!-- Color Map Legend Scale Bar -->
+                <div class="absolute bottom-4 right-4 z-10 glass-panel p-2.5 rounded-xl text-[10px] font-mono space-y-1">
+                    <div class="text-slate-400 text-center">Volume Fraction: Phase A (yellow) / Phase B (purple)</div>
+                    <div class="w-56 h-3.5 rounded bg-gradient-to-r from-purple-900 via-blue-600 to-amber-400 border border-slate-700"></div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>0.0</span><span>0.2</span><span>0.4</span><span>0.6</span><span>1.0</span>
+                    </div>
+                </div>
+
+                <!-- Canvas Quick Action Buttons -->
+                <div class="absolute bottom-4 left-4 z-10 flex gap-2">
+                    <button id="reset-cam" class="glass-panel hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-sky-400"></i> Reset Camera
+                    </button>
+                    <button id="toggle-spin" class="glass-panel hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
+                        <i data-lucide="play" class="w-3.5 h-3.5 text-sky-400" id="spin-icon"></i> Auto Spin
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lower Split Windows: 2D Cross Section Slice, Intermediate VTK Files, & Console Log -->
+            <div class="h-48 border-t border-slate-800 bg-slate-950 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800 shrink-0 text-xs">
+                
+                <!-- 2D Slice View Window -->
+                <div class="w-full md:w-56 p-2 flex flex-col">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1 flex items-center justify-between">
+                        <span>2D Slice Cross-Section</span>
+                        <span class="text-sky-400 font-mono">XY-Plane</span>
+                    </div>
+                    <div class="flex-1 bg-slate-900/80 rounded border border-slate-800 flex items-center justify-center relative overflow-hidden">
+                        <canvas id="slice-canvas" class="w-32 h-32 rounded-full border border-sky-500/30"></canvas>
+                    </div>
+                </div>
+
+                <!-- Saved Intermediate VTK Files List -->
+                <div class="w-full md:w-80 p-2 flex flex-col overflow-hidden">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">Saved Intermediate VTK Files</div>
+                    <div class="flex-1 overflow-y-auto font-mono text-[11px] space-y-1 pr-1" id="vtk-files-list">
+                        <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                            <span>lamella_19pt_10000.vtk</span><span class="text-slate-500">53.5 kB</span>
+                        </div>
+                        <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                            <span>lamella_19pt_20000.vtk</span><span class="text-slate-500">56.8 kB</span>
+                        </div>
+                        <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                            <span>lamella_19pt_30000.vtk</span><span class="text-slate-500">58.3 kB</span>
+                        </div>
+                        <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                            <span>lamella_19pt_40000.vtk</span><span class="text-slate-500">59.3 kB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Console Execution Log Window -->
+                <div class="flex-1 p-2 flex flex-col overflow-hidden font-mono text-[11px]">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">Console Execution Log</div>
+                    <div id="console-log" class="flex-1 bg-slate-900/90 rounded p-2 text-slate-300 overflow-y-auto space-y-1 border border-slate-800">
+                        <div>[Init] Dual-Stencil Diblock Copolymer Simulation Framework Initialized.</div>
+                        <div>[Mesh] Active: 19-Point Cylindrical Mesh Operator (Nr=16, Ntheta=64, Nz=48).</div>
+                        <div class="text-emerald-400">[Equilibrium] Converged to 1,000,000 steps. Ready for analysis.</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Sidebar: 12 Rotational Angles (a - l) -->
+        <div class="w-full md:w-64 h-auto md:h-full glass-panel flex flex-col border-l border-slate-800 z-20 overflow-y-auto p-3.5 space-y-4 shrink-0 text-xs">
+            <div class="font-bold text-slate-200 uppercase tracking-wider text-[11px] flex items-center gap-1.5 pb-2 border-b border-slate-800">
+                <i data-lucide="camera" class="w-4 h-4 text-sky-400"></i> Projections (a - l)
+            </div>
+            <div class="grid grid-cols-1 gap-1.5" id="preset-grid"></div>
+        </div>
+
+    </div>
+
+    <!-- Developer Footer (Afaque Ahmed) -->
+    <footer class="glass-panel px-5 py-2.5 border-t border-slate-800 z-30 flex flex-wrap items-center justify-between gap-4 text-xs shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-500 to-emerald-400 flex items-center justify-center font-bold text-slate-950 text-xs shadow-md">
+                AA
+            </div>
+            <div>
+                <div class="font-bold text-slate-100 text-xs flex items-center gap-2">
+                    Afaque Ahmed 
+                    <span class="text-[9px] font-normal px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">Lead Web & AI Developer</span>
+                </div>
+                <p class="text-slate-400 text-[10px]">Department of Artificial Intelligence | Aror University of Art, Architecture, Design and Heritage, Sukkur</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 text-slate-300">
+            <div class="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
+                <i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span class="font-mono text-[11px]">+92 309 1351482</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-sky-950/40 text-sky-300 px-2.5 py-1 rounded-lg border border-sky-500/30">
+                <i data-lucide="briefcase" class="w-3.5 h-3.5"></i>
+                <span>Available for Thesis & 3D Visualizer Projects</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Execution Engine Script -->
+    <script>
+        lucide.createIcons();
+
+        // Active Stencil Mode State (19 or 55)
+        let activeStencilPoints = 19;
+
+        // Figures Data Definition
+        const MODELS_DATA = {
+            fig14: {
+                title: "Section 4.2 - Fig 14",
+                name: "Lamellae Neutral System",
+                type: "lamellae",
+                params: { A: 1.50, D: 0.70, B: 0.02, tau: 0.36, f: 0.48, u: 0.38, v: 2.30, h: 4.0, ra: 3.0 }
+            },
+            fig16: {
+                title: "Section 4.4 - Fig 16",
+                name: "Cylindrical Neutral System",
+                type: "cylindrical_neutral",
+                params: { A: 1.50, D: 0.50, B: 0.02, tau: 0.30, f: 0.40, u: 0.40, v: 1.50, h: 4.0, ra: 3.0 }
+            },
+            fig18: {
+                title: "Section 4.6 - Fig 18",
+                name: "Spherical Neutral Pores",
+                type: "spherical_neutral",
+                params: { A: 1.50, D: 0.50, B: 0.01, tau: 0.20, f: 0.40, u: 0.38, v: 2.30, h: 5.0, ra: 3.0 }
+            },
+            fig22: {
+                title: "Section 4.8 - Fig 22",
+                name: "Cylindrical Perforated Wall",
+                type: "perforated",
+                params: { A: 1.50, D: 0.70, B: 0.02, tau: 0.36, f: 0.48, u: 0.38, v: 2.30, h: 4.0, ra: 3.0 }
+            },
+            fig23: {
+                title: "Section 4.10 - Fig 23",
+                name: "Cylindrical Helical Attractive",
+                type: "helical_attractive",
+                params: { A: 1.50, D: 0.70, B: 0.02, tau: 0.36, f: 0.48, u: 0.38, v: 2.30, h: 4.0, ra: 3.0 }
+            },
+            fig24: {
+                title: "Section 4.12 - Fig 24",
+                name: "Spherical Beads Attractive",
+                type: "spherical_beads",
+                params: { A: 1.50, D: 0.70, B: 0.02, tau: 0.36, f: 0.48, u: 0.38, v: 2.30, h: 4.0, ra: 3.0 }
+            }
+        };
+
+        // Standard 12 Rotation Projections (a to l)
+        const VIEW_PRESETS = [
+            { id: 'a', name: 'Front View', pos: [0, 0, 11], target: [0, 0, 0] },
+            { id: 'b', name: 'Back View', pos: [0, 0, -11], target: [0, 0, 0] },
+            { id: 'c', name: 'Top View', pos: [0, 11, 0.001], target: [0, 0, 0] },
+            { id: 'd', name: 'Bottom View', pos: [0, -11, 0.001], target: [0, 0, 0] },
+            { id: 'e', name: 'Right View', pos: [11, 0, 0], target: [0, 0, 0] },
+            { id: 'f', name: 'Left View', pos: [-11, 0, 0], target: [0, 0, 0] },
+            { id: 'g', name: 'Diagonal', pos: [7, 7, 7], target: [0, 0, 0] },
+            { id: 'h', name: 'Off Diagonal', pos: [-7, 8, 6], target: [0, 0, 0] },
+            { id: 'i', name: 'Off Front', pos: [3, 4, 10], target: [0, 0, 0] },
+            { id: 'j', name: 'Off Back', pos: [4, 4, -10], target: [0, 0, 0] },
+            { id: 'k', name: 'Top Bottom', pos: [2, 9, 4], target: [0, 0, 0] },
+            { id: 'l', name: 'Off Bottom', pos: [-3, -9, 4], target: [0, 0, 0] }
+        ];
+
+        let scene, camera, renderer, controls;
+        let activeMeshGroup;
+        let currentModelKey = 'fig14';
+        let autoSpin = false;
+        let isSimulating = false;
+        let simStep = 1000000;
+
+        const container = document.getElementById('canvas-container');
+        const viewTitle = document.getElementById('view-title');
+        const presetGrid = document.getElementById('preset-grid');
+
+        // Populate Projection Preset Buttons
+        VIEW_PRESETS.forEach((preset) => {
+            const btn = document.createElement('button');
+            btn.className = `view-btn text-left p-2 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-sky-950/40 hover:border-sky-400 transition text-slate-300 font-medium flex items-center justify-between text-xs`;
+            btn.innerHTML = `<span><strong class="text-sky-400">(${preset.id})</strong> ${preset.name}</span>`;
+            btn.onclick = () => applyPresetView(preset, btn);
+            presetGrid.appendChild(btn);
+        });
+
+        // Dynamic Mathematical Weighting Factor Calculations
+        function computeWeightFactor(r, dr, dtheta, dz, points) {
+            const rSafe = Math.max(r, 1e-5);
+            if (points === 55) {
+                // 55-Point Stencil Formula
+                const num = 1800 * Math.pow(rSafe, 2) * Math.pow(dr, 2) * Math.pow(dtheta, 2) * Math.pow(dz, 2);
+                const den = 980 * Math.pow(rSafe, 2) * Math.pow(dtheta, 2) * Math.pow(dz, 2) + 
+                            Math.pow(dr, 2) * Math.pow(dz, 2) + 
+                            Math.pow(rSafe, 2) * Math.pow(dr, 2) * Math.pow(dtheta, 2);
+                return num / den;
+            } else {
+                // 19-Point Stencil Formula
+                const num = 6 * Math.pow(rSafe, 2) * Math.pow(dr, 2) * Math.pow(dtheta, 2) * Math.pow(dz, 2);
+                const den = 4 * (Math.pow(rSafe, 2) * Math.pow(dtheta, 2) * Math.pow(dz, 2) + 
+                            Math.pow(dr, 2) * Math.pow(dz, 2) + 
+                            Math.pow(rSafe, 2) * Math.pow(dr, 2) * Math.pow(dtheta, 2));
+                return num / den;
+            }
+        }
+
+        // Stencil Switching Engine Function
+        function switchStencil(points) {
+            activeStencilPoints = points;
+            
+            const btn19 = document.getElementById('stencil-19-btn');
+            const btn55 = document.getElementById('stencil-55-btn');
+            const badge = document.getElementById('active-stencil-badge');
+            const statusText = document.getElementById('status-text');
+
+            if (points === 55) {
+                btn19.classList.remove('active');
+                btn55.classList.add('active');
+                badge.innerText = '55-Pt Operator';
+                statusText.innerText = '55-Pt Engine Active';
+                logConsole('Switched stencil formulation to 55-Point Cylindrical Discretization.');
+                updateVTKList('55pt');
+            } else {
+                btn55.classList.remove('active');
+                btn19.classList.add('active');
+                badge.innerText = '19-Pt Operator';
+                statusText.innerText = '19-Pt Engine Active';
+                logConsole('Switched stencil formulation to 19-Point Cylindrical Discretization.');
+                updateVTKList('19pt');
+            }
+
+            renderCurrentModel();
+            drawSlice2D();
+        }
+
+        function updateVTKList(suffix) {
+            const vtkList = document.getElementById('vtk-files-list');
+            vtkList.innerHTML = `
+                <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                    <span>lamella_${suffix}_10000.vtk</span><span class="text-slate-500">${suffix === '55pt' ? '58.2 kB' : '53.5 kB'}</span>
+                </div>
+                <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                    <span>lamella_${suffix}_20000.vtk</span><span class="text-slate-500">${suffix === '55pt' ? '61.4 kB' : '56.8 kB'}</span>
+                </div>
+                <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                    <span>lamella_${suffix}_30000.vtk</span><span class="text-slate-500">${suffix === '55pt' ? '63.1 kB' : '58.3 kB'}</span>
+                </div>
+                <div class="flex justify-between bg-slate-900/60 p-1 rounded border border-slate-800/80 text-slate-300">
+                    <span>lamella_${suffix}_40000.vtk</span><span class="text-slate-500">${suffix === '55pt' ? '64.0 kB' : '59.3 kB'}</span>
+                </div>
+            `;
+        }
+
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x070b14);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 11);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 15, 10);
+            scene.add(dirLight);
+
+            // Bind Navigation Tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const key = e.currentTarget.getAttribute('data-key');
+                    switchFigure(key, e.currentTarget);
+                });
+            });
+
+            renderCurrentModel();
+            applyPresetView(VIEW_PRESETS[0], presetGrid.children[0]);
+            drawSlice2D();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function switchFigure(key, clickedBtn) {
+            currentModelKey = key;
+
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (clickedBtn) clickedBtn.classList.add('active');
+
+            const model = MODELS_DATA[key];
+            document.getElementById('fig-subtitle').innerText = `${model.title} - ${model.name}`;
+
+            // Sync Inputs
+            document.getElementById('param-A').value = model.params.A.toFixed(2);
+            document.getElementById('param-D').value = model.params.D.toFixed(2);
+            document.getElementById('param-B').value = model.params.B.toFixed(2);
+            document.getElementById('param-tau').value = model.params.tau.toFixed(2);
+            document.getElementById('param-f').value = model.params.f.toFixed(2);
+            document.getElementById('param-u').value = model.params.u.toFixed(2);
+            document.getElementById('param-v').value = model.params.v.toFixed(2);
+            document.getElementById('param-h').value = model.params.h.toFixed(1);
+            document.getElementById('param-ra').value = model.params.ra.toFixed(1);
+
+            logConsole(`Switched to ${model.title}: ${model.name} (${activeStencilPoints}-Point Stencil)`);
+            renderCurrentModel();
+            drawSlice2D();
+        }
+
+        // Render Geometry & Custom WebGL Shaders matching Stencil CDS
+        function renderCurrentModel() {
+            if (activeMeshGroup) scene.remove(activeMeshGroup);
+
+            activeMeshGroup = new THREE.Group();
+            const modelType = MODELS_DATA[currentModelKey].type;
+
+            const ra = parseFloat(document.getElementById('param-ra').value) || 3.0;
+            const outerR = ra + 4.0;
+            const height = parseFloat(document.getElementById('param-h').value) || 4.0;
+
+            if (modelType === 'lamellae') {
+                const mat = createShaderMaterial('lamellae');
+                const outerMesh = new THREE.Mesh(new THREE.CylinderGeometry(outerR, outerR, height, 64, 1, true), mat);
+                const innerMesh = new THREE.Mesh(new THREE.CylinderGeometry(ra, ra, height, 64, 1, true), mat);
+                const capGeo = new THREE.RingGeometry(ra, outerR, 64);
+                const topCap = new THREE.Mesh(capGeo, mat); topCap.rotation.x = -Math.PI / 2; topCap.position.y = height/2;
+                const botCap = new THREE.Mesh(capGeo, mat); botCap.rotation.x = Math.PI / 2; botCap.position.y = -height/2;
+                activeMeshGroup.add(outerMesh, innerMesh, topCap, botCap);
+
+            } else if (modelType === 'spherical_beads') {
+                const numSpheres = 1200;
+                const sphereGeo = new THREE.SphereGeometry(0.18, 12, 12);
+                const sphereMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.2 });
+                const instancedMesh = new THREE.InstancedMesh(sphereGeo, sphereMat, numSpheres);
+                const dummy = new THREE.Object3D();
+
+                for (let i = 0; i < numSpheres; i++) {
+                    const r = ra + Math.random() * (outerR - ra);
+                    const theta = Math.random() * Math.PI * 2;
+                    const z = (Math.random() - 0.5) * height;
+                    dummy.position.set(r * Math.cos(theta), r * Math.sin(theta), z);
+                    dummy.updateMatrix();
+                    instancedMesh.setMatrixAt(i, dummy.matrix);
+                }
+                instancedMesh.instanceMatrix.needsUpdate = true;
+                activeMeshGroup.add(instancedMesh);
+
+            } else if (modelType === 'helical_attractive') {
+                for (let i = 0; i < 3; i++) {
+                    const r = ra + i * 1.1;
+                    const mat = createShaderMaterial('helical');
+                    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, height, 64, 1, true), mat);
+                    const rimMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true });
+                    const ring = new THREE.Mesh(new THREE.RingGeometry(r - 0.05, r + 0.05, 64), rimMat);
+                    ring.rotation.x = Math.PI/2; ring.position.y = height/2;
+                    activeMeshGroup.add(cyl, ring);
+                }
+
+            } else if (modelType === 'perforated') {
+                const mat = createShaderMaterial('perforated');
+                for (let i = 0; i < 2; i++) {
+                    const r = ra + i * 1.2;
+                    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, height, 64, 32, true), mat);
+                    activeMeshGroup.add(cyl);
+                }
+
+            } else if (modelType === 'spherical_neutral') {
+                const bgMat = new THREE.MeshStandardMaterial({ color: 0x00a8e8, roughness: 0.3 });
+                activeMeshGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(outerR, outerR, height, 48, 1, true), bgMat));
+                activeMeshGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(ra, ra, height, 48, 1, true), bgMat));
+
+                const numSpheres = 1000;
+                const sphereGeo = new THREE.SphereGeometry(0.16, 12, 12);
+                const sphereMat = new THREE.MeshStandardMaterial({ color: 0xffd000 });
+                const instancedMesh = new THREE.InstancedMesh(sphereGeo, sphereMat, numSpheres);
+                const dummy = new THREE.Object3D();
+
+                for (let i = 0; i < numSpheres; i++) {
+                    const r = ra + Math.random() * (outerR - ra);
+                    const theta = Math.random() * Math.PI * 2;
+                    const z = (Math.random() - 0.5) * height;
+                    dummy.position.set(r * Math.cos(theta), r * Math.sin(theta), z);
+                    dummy.updateMatrix();
+                    instancedMesh.setMatrixAt(i, dummy.matrix);
+                }
+                instancedMesh.instanceMatrix.needsUpdate = true;
+                activeMeshGroup.add(instancedMesh);
+
+            } else if (modelType === 'cylindrical_neutral') {
+                const mat = createShaderMaterial('cylindrical_neutral');
+                activeMeshGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(outerR, outerR, height, 64, 1, true), mat));
+                activeMeshGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(ra, ra, height, 64, 1, true), mat));
+            }
+
+            scene.add(activeMeshGroup);
+        }
+
+        // GLSL Shaders adjusted dynamically for 19-Pt vs 55-Pt Resolution
+        function createShaderMaterial(type) {
+            const tau = parseFloat(document.getElementById('param-tau').value) || 0.36;
+            const f = parseFloat(document.getElementById('param-f').value) || 0.48;
+            const stencilMult = activeStencilPoints === 55 ? 1.35 : 1.0;
+
+            if (type === 'lamellae') {
+                return new THREE.ShaderMaterial({
+                    uniforms: { uTau: { value: tau * stencilMult }, uF: { value: f } },
+                    vertexShader: `varying vec3 vPos; varying vec3 vNorm; void main() { vNorm = normalize(normalMatrix * normal); vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+                    fragmentShader: `
+                        uniform float uTau; uniform float uF;
+                        varying vec3 vPos; varying vec3 vNorm;
+                        void main() {
+                            float stripe = sin(vPos.x * (12.0 * uTau) + sin(vPos.y * (10.0 * uF)));
+                            vec3 yellowColor = vec3(0.92, 0.82, 0.1);
+                            vec3 purpleColor = vec3(0.45, 0.1, 0.65);
+                            vec3 col = mix(purpleColor, yellowColor, smoothstep(-0.2, 0.2, stripe));
+                            float diff = max(dot(vNorm, normalize(vec3(1.0, 1.5, 2.0))), 0.35);
+                            gl_FragColor = vec4(col * diff, 1.0);
+                        }
+                    `,
+                    side: THREE.DoubleSide
+                });
+            } else if (type === 'helical') {
+                return new THREE.ShaderMaterial({
+                    uniforms: { uTau: { value: tau * stencilMult } },
+                    vertexShader: `varying vec3 vPos; varying vec3 vNorm; void main() { vNorm = normalize(normalMatrix * normal); vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+                    fragmentShader: `
+                        uniform float uTau;
+                        varying vec3 vPos; varying vec3 vNorm;
+                        void main() {
+                            float theta = atan(vPos.y, vPos.x);
+                            float stripe = sin(theta * 12.0 + vPos.z * (12.0 * uTau));
+                            vec3 col = mix(vec3(0.55, 0.88, 0.1), vec3(0.85, 0.95, 0.2), smoothstep(-0.5, 0.5, stripe));
+                            float diff = max(dot(vNorm, normalize(vec3(1.0, 1.5, 2.0))), 0.4);
+                            gl_FragColor = vec4(col * diff, 1.0);
+                        }
+                    `,
+                    side: THREE.DoubleSide
+                });
+            } else if (type === 'perforated') {
+                return new THREE.ShaderMaterial({
+                    uniforms: { uF: { value: f } },
+                    vertexShader: `varying vec3 vPos; varying vec3 vNorm; void main() { vNorm = normalize(normalMatrix * normal); vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+                    fragmentShader: `
+                        uniform float uF;
+                        varying vec3 vPos; varying vec3 vNorm;
+                        void main() {
+                            float theta = atan(vPos.y, vPos.x);
+                            float hole = sin(theta * (30.0 * uF)) * cos(vPos.z * 6.0);
+                            if (hole > 0.60) discard;
+                            vec3 col = vec3(0.65, 0.88, 0.05);
+                            float diff = max(dot(vNorm, normalize(vec3(1.0, 1.5, 2.0))), 0.35);
+                            gl_FragColor = vec4(col * diff, 1.0);
+                        }
+                    `,
+                    side: THREE.DoubleSide
+                });
+            } else {
+                return new THREE.ShaderMaterial({
+                    uniforms: { uTau: { value: tau * stencilMult } },
+                    vertexShader: `varying vec3 vPos; varying vec3 vNorm; void main() { vNorm = normalize(normalMatrix * normal); vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+                    fragmentShader: `
+                        uniform float uTau;
+                        varying vec3 vPos; varying vec3 vNorm;
+                        void main() {
+                            float theta = atan(vPos.y, vPos.x);
+                            float field = sin(theta * (40.0 * uTau)) + cos(vPos.z * 4.0);
+                            vec3 col = mix(vec3(0.0, 0.45, 0.9), vec3(0.9, 0.95, 0.1), smoothstep(0.2, 0.8, field));
+                            float diff = max(dot(vNorm, normalize(vec3(1.0, 1.5, 2.0))), 0.35);
+                            gl_FragColor = vec4(col * diff, 1.0);
+                        }
+                    `,
+                    side: THREE.DoubleSide
+                });
+            }
+        }
+
+        // Draw 2D Cross Section Slice Preview
+        function drawSlice2D() {
+            const canvas = document.getElementById('slice-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 128;
+
+            const cx = 64, cy = 64, outerR = 56, innerR = 24;
+            ctx.clearRect(0, 0, 128, 128);
+
+            const freq = activeStencilPoints === 55 ? 0.6 : 0.4;
+            for (let r = innerR; r < outerR; r++) {
+                const ringVal = Math.sin(r * freq);
+                ctx.strokeStyle = ringVal > 0 ? '#eab308' : '#7e22ce';
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        function applyPresetView(preset, btnElement) {
+            document.querySelectorAll('.view-btn').forEach(b => {
+                b.classList.remove('border-sky-400', 'bg-sky-950/40');
+                b.classList.add('border-slate-800', 'bg-slate-900/60');
+            });
+            if (btnElement) {
+                btnElement.classList.add('border-sky-400', 'bg-sky-950/40');
+                btnElement.classList.remove('border-slate-800', 'bg-slate-900/60');
+            }
+
+            const [px, py, pz] = preset.pos;
+            const [tx, ty, tz] = preset.target;
+
+            camera.position.set(px, py, pz);
+            controls.target.set(tx, ty, tz);
+            controls.update();
+
+            viewTitle.innerText = `(${preset.id}) ${preset.name}`;
+        }
+
+        function logConsole(msg) {
+            const consoleBox = document.getElementById('console-log');
+            const line = document.createElement('div');
+            line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            consoleBox.appendChild(line);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (autoSpin && activeMeshGroup) {
+                activeMeshGroup.rotation.y += 0.005;
+                activeMeshGroup.rotation.x += 0.002;
+            }
+
+            if (isSimulating && simStep < 1000000) {
+                simStep += 2000;
+                document.getElementById('step-counter').innerText = `Step: ${simStep.toLocaleString()} / 1,000,000`;
+                if (simStep % 100000 === 0) {
+                    logConsole(`[${activeStencilPoints}-Pt Engine] Step ${simStep}/1000000 completed. VTK Snapshot Saved.`);
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Control Buttons Listeners
+        document.getElementById('btn-start').onclick = () => {
+            isSimulating = true;
+            document.getElementById('status-text').innerText = `Running ${activeStencilPoints}-Pt Engine...`;
+            document.getElementById('status-text').className = 'text-sky-400 font-bold animate-pulse';
+            logConsole(`Started ${activeStencilPoints}-Point Stencil Time Stepping Iterations.`);
+        };
+
+        document.getElementById('btn-pause').onclick = () => {
+            isSimulating = false;
+            document.getElementById('status-text').innerText = 'Paused';
+            document.getElementById('status-text').className = 'text-amber-400 font-bold';
+            logConsole('Simulation Paused.');
+        };
+
+        document.getElementById('btn-reset').onclick = () => {
+            isSimulating = false;
+            simStep = 0;
+            document.getElementById('status-text').innerText = 'Reset Done';
+            document.getElementById('status-text').className = 'text-slate-400 font-bold';
+            document.getElementById('step-counter').innerText = `Step: 0 / 1,000,000`;
+            renderCurrentModel();
+            logConsole('Reset CDS Order Parameter Field.');
+        };
+
+        document.getElementById('btn-export').onclick = () => {
+            const dataStr = `data:text/json;charset=utf-8,# vtk DataFile Version 3.0\nCDS_${activeStencilPoints}Point_Output\nASCII\nDATASET STRUCTURED_POINTS\nDIMENSIONS 16 64 48\nORIGIN 0 0 0\nSPACING 0.5 0.098 0.5\nPOINT_DATA 49152\nSCALARS psi float 1\nLOOKUP_TABLE default\n`;
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${currentModelKey}_${activeStencilPoints}point_output.vtk`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            logConsole(`Exported ${activeStencilPoints}-Point VTK File: ${currentModelKey}_${activeStencilPoints}point_output.vtk`);
+        };
+
+        document.getElementById('reset-cam').onclick = () => {
+            applyPresetView(VIEW_PRESETS[0], presetGrid.children[0]);
+            if (activeMeshGroup) activeMeshGroup.rotation.set(0, 0, 0);
+        };
+
+        document.getElementById('toggle-spin').onclick = () => {
+            autoSpin = !autoSpin;
+            const icon = document.getElementById('spin-icon');
+            if (autoSpin) {
+                icon.setAttribute('data-lucide', 'pause');
+            } else {
+                icon.setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        };
+
+        // Inputs Live Change Listener
+        ['param-A', 'param-D', 'param-B', 'param-tau', 'param-f', 'param-u', 'param-v', 'param-h', 'param-ra'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                renderCurrentModel();
+                drawSlice2D();
+                logConsole(`Parameter ${id} updated.`);
+            });
+        });
+
+        window.onload = () => {
+            initScene();
+            animate();
+        };
+    </script>
+</body>
+</html>
