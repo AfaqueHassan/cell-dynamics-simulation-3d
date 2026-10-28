@@ -48,5 +48,5 @@ $$\Delta\psi = D \nabla^2 [-A \tanh(\psi) + \psi] - B(\psi - f) + \eta$$
 
 ## 🚀 How to Run Locally
 
-1. **Clone the Repository:**
+Click on link:
   https://afaquehassan.github.io/cell-dynamics-simulation-3d/
